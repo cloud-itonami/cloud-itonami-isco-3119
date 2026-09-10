@@ -53,15 +53,15 @@ human-in-the-loop interrupt/resume via checkpointing.
                                            +-> :hold               (:hard? true)
 ```
 
-- `src/engineering/store.cljc` — `Store` protocol + `MemStore`:
+- `src/engineering/store.kotoba` — `Store` protocol + `MemStore`:
   registered samples, test protocols, equipment, committed records, an append-only audit ledger.
-- `src/engineering/advisor.cljc` — `Advisor` protocol; `mock-advisor`
+- `src/engineering/advisor.kotoba` — `Advisor` protocol; `mock-advisor`
   (deterministic, default) proposes a lab operation from a
   request; `llm-advisor` wraps a `langchain.model/ChatModel` — either
   way the advisor only ever produces a `:propose`-effect proposal,
   never a committed record, and LLM parse failures always yield
   `:confidence 0.0` (forces escalation, never fabricated confidence).
-- `src/engineering/governor.cljc` — `EngineeringGovernor/check`: a pure
+- `src/engineering/governor.kotoba` — `EngineeringGovernor/check`: a pure
   function, wired as its own `:govern` node. Hard invariants
   (unregistered sample, missing test protocol, a proposal whose
   `:effect` isn't `:propose`, finalized claims in draft results)
@@ -72,7 +72,7 @@ human-in-the-loop interrupt/resume via checkpointing.
   (`actor/approve!`), matching the README's robotics-premise statement
   that out-of-spec flagging always requires
   human sign-off.
-- `src/engineering/actor.cljc` — `build-graph`, `run-request!`,
+- `src/engineering/actor.kotoba` — `build-graph`, `run-request!`,
   `approve!`: the `langgraph.graph/state-graph` wiring itself.
 
 Proposal operations (advisor-only, all `:effect :propose`):
