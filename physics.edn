@@ -1,0 +1,33 @@
+;; What this vertical's robot physically does, declared for
+;; kotoba.robotics.process (kotoba-lang/robotics). `kbb -M:physics` runs it.
+;;
+;; README "Robotics premise": lab automation runs test protocols, sample
+;; analysis and equipment calibration for physical and engineering science
+;; technicians (ISCO 3119). Its physical work is loading a specimen into an
+;; environmental chamber and soaking it at 85 C until it is at temperature
+;; through its thickness before the test is started.
+;;
+;; Every number without a cited source is marked `estimate` in its :basis.
+;; Replacing an estimate with a sourced value is this bot's growth work.
+{:physics/schema "itonami.physical-ai.spec.v1"
+ :repo "cloud-itonami/cloud-itonami-isco-3119"
+ :cases
+ [{:id :specimen-into-chamber
+   :kind :manipulator
+   :procedure "arm lifts a specimen with its fixture from the bench and places it on the environmental chamber shelf"
+   :params {:l1-m 0.40 :l2-m 0.35 :m1-kg 3.0 :m2-kg 2.0
+            :from [0.50 0.05] :to [0.25 0.50] :duration-s 2.0 :steps 400}
+   :sweep {:param :payload-kg :values [0.2 0.5 1.0 2.0 3.0]}
+   :quantity :peak-tau1-nm
+   :limit {:max 30.0 :basis "estimate: continuous shoulder torque of a benchtop lab-automation arm (~3 kg payload class)"}
+   :boundary {:lo 0.05 :hi 20.0}}
+  {:id :chamber-soak-85c
+   :kind :thermal
+   :procedure "10 mm polyamide specimen soaks in an 85 C chamber, heated from both faces, until its far face is within 2 K of set point"
+   :params {:thickness-m 0.010 :conductivity-w-mk 0.25 :density-kg-m3 1140.0 :specific-heat-j-kgk 1700.0
+            :t0-c 25.0 :t-hot-c 85.0 :h-front-w-m2k 20.0 :t-back-ambient-c 85.0 :h-back-w-m2k 20.0
+            :threshold-c 83.0 :nodes 11}
+   :sweep {:param :duration-s :values [600.0 1200.0 1800.0 2700.0 3600.0]}
+   :quantity :final-back-c
+   :limit {:min 83.0 :basis "estimate: specimen taken as soaked when within 2 K of the chamber set point"}
+   :boundary {:lo 60.0 :hi 20000.0}}]}
