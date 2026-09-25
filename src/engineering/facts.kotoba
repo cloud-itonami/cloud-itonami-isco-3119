@@ -1,0 +1,28 @@
+(ns engineering.facts
+  "The lab support actor's whole vocabulary: the four ops the advisor may
+  propose, each with the meaning README.md documents for it. Read by
+  `engineering.governor`: an op outside `permitted-ops` is held as
+  `:unknown-op`, so the governor judges only proposals it has rules for.
+
+  Why a closed list: `llm-advisor` passes through whatever `:op` the model
+  returns, and its parse-failure proposal is `:op :unknown`. Before this
+  file the governor checked only the ops it knew by name, so any other
+  keyword -- e.g. `:release-test-report`, the authorized signatory's act
+  and not a technician advisor's -- reached `:commit` at high confidence
+  (measured 2026-09-25 against b3e244f: `governor_test` and `actor_test`
+  `...outside-vocabulary` were red before the governor read this file).
+
+  No external source is cited here: these are this actor's own
+  definitions, not facts about the world.")
+
+(def op-descriptions
+  {:run-test-protocol       "execute a pre-approved, registered test protocol on a sample"
+   :log-result              "log a test result to the record"
+   :flag-out-of-spec-result "surface a result outside expected tolerance (escalates)"
+   :calibrate-equipment     "propose a calibration procedure run on registered equipment"})
+
+(def permitted-ops (set (keys op-descriptions)))
+
+(def escalating-ops
+  "Ops that always need human sign-off, whatever the advisor's confidence."
+  #{:flag-out-of-spec-result})

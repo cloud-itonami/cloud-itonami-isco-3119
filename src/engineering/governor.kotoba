@@ -21,15 +21,21 @@
     3. no-actuation           — proposal :effect must be :propose.
     4. equipment-exists       — :calibrate-equipment ops must reference
                                 a registered equipment resource.
+    5. closed vocabulary      — an op outside `facts/permitted-ops` (an
+                                LLM can return any keyword, including the
+                                advisor's own `:unknown` parse-failure op)
+                                is held as `:unknown-op`, never committed
+                                or escalated on confidence alone.
 
   ESCALATION invariants (:escalate? true, ALWAYS human sign-off):
-    5. :flag-out-of-spec-result — always escalates (quality assurance
+    6. :flag-out-of-spec-result — always escalates (quality assurance
                                   safeguard, never silently dismissed).
-    6. low confidence (< `confidence-floor`)."
-  (:require [engineering.store :as store]))
+    7. low confidence (< `confidence-floor`)."
+  (:require [engineering.facts :as facts]
+            [engineering.store :as store]))
 
 (def confidence-floor 0.6)
-(def ^:private escalating-ops #{:flag-out-of-spec-result})
+(def ^:private escalating-ops facts/escalating-ops)
 
 (defn- hard-violations [{:keys [proposal request]} sample-record protocol-record equipment-record]
   (cond-> []
@@ -45,7 +51,11 @@
 
     (and (= :calibrate-equipment (:op proposal))
          (nil? equipment-record))
-    (conj {:rule :no-equipment :detail "calibrate-equipment には登録 equipment が必須"})))
+    (conj {:rule :no-equipment :detail "calibrate-equipment には登録 equipment が必須"})
+
+    (not (contains? facts/permitted-ops (:op proposal)))
+    (conj {:rule :unknown-op
+           :detail "op is outside this actor's vocabulary (facts/permitted-ops); held rather than judged on confidence"})))
 
 (defn check
   "Assess a proposal against `request`/`context`/`proposal` and a

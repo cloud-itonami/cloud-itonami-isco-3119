@@ -1,5 +1,6 @@
 (ns engineering.governor-test
   (:require [clojure.test :refer [deftest is testing]]
+            [engineering.facts :as facts]
             [engineering.governor :as governor]
             [engineering.store :as store]))
 
@@ -81,3 +82,46 @@
     (is (true? (:ok? verdict)))
     (is (false? (:hard? verdict)))
     (is (false? (:escalate? verdict)))))
+
+(deftest approves-clean-log-result
+  ;; Boundary for holds-op-outside-vocabulary: :log-result is one of the
+  ;; four permitted ops and had never been exercised; it must still pass.
+  (let [st (fresh-store)
+        request {:sample-id "sample-1" :op :log-result}
+        proposal {:op :log-result :effect :propose :stake :low :confidence 0.95}
+        verdict (governor/check request {} proposal st)]
+    (is (true? (:ok? verdict)))
+    (is (empty? (:violations verdict)))))
+
+(deftest holds-op-outside-vocabulary
+  ;; An LLM advisor can return any keyword. Before the closed vocabulary an
+  ;; op in no list -- here releasing the test report, which is the lab's
+  ;; authorized signatory's act, not a technician advisor's -- committed on
+  ;; confidence alone.
+  (let [st (fresh-store)
+        request {:sample-id "sample-1" :op :release-test-report}
+        proposal {:op :release-test-report :effect :propose :stake :low :confidence 0.95}
+        verdict (governor/check request {} proposal st)]
+    (is (false? (:ok? verdict)))
+    (is (true? (:hard? verdict)))
+    (is (false? (:escalate? verdict)))
+    (is (= [:unknown-op] (mapv :rule (:violations verdict))))))
+
+(deftest holds-unparseable-llm-proposal
+  ;; advisor/parse-proposal yields :op :unknown at confidence 0.0. It used
+  ;; to escalate on low confidence, i.e. a human could approve an op that
+  ;; names nothing; it is held instead.
+  (let [st (fresh-store)
+        request {:sample-id "sample-1"}
+        proposal {:op :unknown :effect :propose :stake :high :confidence 0.0}
+        verdict (governor/check request {} proposal st)]
+    (is (true? (:hard? verdict)))
+    (is (false? (:escalate? verdict)))
+    (is (some #(= :unknown-op (:rule %)) (:violations verdict)))))
+
+(deftest vocabulary-is-the-four-documented-ops
+  (is (= #{:run-test-protocol :log-result :flag-out-of-spec-result :calibrate-equipment}
+         facts/permitted-ops))
+  (is (every? facts/permitted-ops facts/escalating-ops))
+  (is (every? string? (vals facts/op-descriptions)))
+  (is (= facts/permitted-ops (set (keys facts/op-descriptions)))))
