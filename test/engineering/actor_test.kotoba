@@ -1,6 +1,7 @@
 (ns engineering.actor-test
   (:require [clojure.test :refer [deftest is testing]]
             [engineering.actor :as actor]
+            [engineering.advisor :as advisor]
             [engineering.store :as store]))
 
 (defn- fresh-store []
@@ -70,3 +71,20 @@
     (is (= :done (:status result)))
     (is (some? (get-in result [:state :record])))
     (is (= 1 (count (store/records-of st "sample-1"))))))
+
+(deftest holds-llm-proposal-outside-vocabulary-without-committing
+  ;; End to end through llm-advisor: a model reply naming an op the actor
+  ;; has no rule for, at high confidence, must stop at :hold with the
+  ;; reason in the ledger -- not reach :commit.
+  (let [st (fresh-store)
+        reply "{:op :release-test-report :confidence 0.95 :stake :low}"
+        adv (advisor/llm-advisor nil (fn [_ _ _] {:content reply}) {})
+        graph (actor/build-graph {:store st :advisor adv})
+        request {:sample-id "sample-1" :op :log-result :stake :low}
+        result (actor/run-request! graph request {} "thread-llm-1")]
+    (is (= :done (:status result)))
+    (is (= :hold (:disposition (:state result))))
+    (is (nil? (get-in result [:state :record])))
+    (is (empty? (store/records-of st "sample-1")))
+    (is (= [:unknown-op]
+           (mapv :rule (get-in (last (store/ledger st)) [:verdict :violations]))))))

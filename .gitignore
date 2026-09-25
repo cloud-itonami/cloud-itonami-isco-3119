@@ -1,3 +1,6 @@
 .cpcache
 .nrepl-port
 .DS_Store
+
+# kbb/nbb dependency cache
+.nbb/
