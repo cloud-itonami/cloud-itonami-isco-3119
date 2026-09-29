@@ -41,7 +41,7 @@ Resolves via [`kotoba-lang/occupation`](https://github.com/kotoba-lang/occupatio
 
 ## Reference implementation (`:maturity :implemented`)
 
-Full itonami Actor pattern (per ADR-2607011000 / CLAUDE.md's Actors
+Full itonami Actor pattern (per ADR-2607011000 / AGENTS.md's Actors
 section, alongside `cloud-itonami-isco-3111`, and other occupation actors): a real
 [`kotoba-lang/langgraph`](https://github.com/kotoba-lang/langgraph)
 `StateGraph`, with the Engineering Advisor and Engineering Technician Governor as distinct graph nodes and
